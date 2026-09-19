@@ -184,8 +184,9 @@ services:
       - ES_SEEDS=temporal-elasticsearch
       - ES_VERSION=v7
       - TEMPORAL_NAMESPACE=default
-    volumes:
-      - ./dynamicconfig:/etc/temporal/config/dynamicconfig:ro
+    configs:
+      - source: temporal-dynamic-config
+        target: /etc/temporal/config/dynamicconfig/development-sql.yaml
     expose:
       - "7233"
     networks:
@@ -235,6 +236,16 @@ services:
     depends_on:
       temporal:
         condition: service_healthy
+
+configs:
+  temporal-dynamic-config:
+    content: |-
+      limit.maxIDLength:
+        - value: 255
+          constraints: {}
+      system.forceSearchAttributesCacheRefreshOnRead:
+        - value: true
+          constraints: {}
 
 volumes:
   postgres-volume:
