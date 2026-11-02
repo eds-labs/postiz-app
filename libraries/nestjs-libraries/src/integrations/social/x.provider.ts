@@ -30,6 +30,7 @@ import { XDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/x.
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { isAllowedUploadPath } from '@gitroom/helpers/utils/valid.url.path';
+import { readLocalXImage } from './x.local-image';
 
 // Travels through the workflow history between postPending, checkPostStatus
 // and finalizePost - keep it small JSON (media ids and the tweet content).
@@ -715,6 +716,11 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     }
   }
 
+  private async readImageForX(path: string): Promise<Buffer> {
+    const local = await readLocalXImage(path);
+    return local === undefined ? this.readOrFetch(path) : local;
+  }
+
   private async uploadMediaEntries(
     client: TwitterApi,
     postDetails: PostDetails<any>[],
@@ -741,7 +747,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
                   mediaId: await this.uploadWithRateLimitRetry(async () =>
                     asArticleImage
                       ? client.v2.uploadMedia(
-                          await sharp(await this.readOrFetch(m.path))
+                          await sharp(await this.readImageForX(m.path))
                             .resize({
                               width: 1000,
                             })
@@ -753,7 +759,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
                           }
                         )
                       : client.v2.uploadMedia(
-                          await sharp(await this.readOrFetch(m.path), {
+                          await sharp(await this.readImageForX(m.path), {
                             animated: lookup(m.path) === 'image/gif',
                           })
                             .resize({

@@ -1,0 +1,15 @@
+FROM ghcr.io/gitroomhq/postiz-app@sha256:d2b37802e96757729fdea2d3d71287f841c2b619faa1cb4c21dac07df657fde1
+WORKDIR /app
+RUN node -e "const fs=require('fs'),c=require('crypto'),a=require('assert');a.strictEqual(c.createHash('sha256').update(fs.readFileSync('libraries/nestjs-libraries/src/integrations/social/x.provider.ts')).digest('hex'),'d50a5bd269237fbb6b4965dc0413ac7a2b481017426049b32b6a292b2c1e63f9')"
+COPY libraries/nestjs-libraries/src/integrations/social/x.provider.ts libraries/nestjs-libraries/src/integrations/social/x.provider.ts
+COPY libraries/nestjs-libraries/src/integrations/social/x.local-image.ts libraries/nestjs-libraries/src/integrations/social/x.local-image.ts
+COPY tests/x-local-image.test.cjs tests/x-local-image.test.cjs
+RUN TYPESCRIPT_PATH=/app/node_modules/typescript node --test tests/x-local-image.test.cjs
+RUN ./node_modules/.bin/tsc --noEmit --strict --skipLibCheck --target ES2021 --module commonjs --types node libraries/nestjs-libraries/src/integrations/social/x.local-image.ts
+RUN pnpm run build:backend && pnpm run build:orchestrator
+ARG PATCH_REVISION
+LABEL io.eds-labs.postiz.base="sha256:d2b37802e96757729fdea2d3d71287f841c2b619faa1cb4c21dac07df657fde1" \
+      io.eds-labs.postiz.patch="x-local-image" \
+      io.eds-labs.postiz.patch-revision="$PATCH_REVISION"
+# The existing schema/client is retained. Do not run prisma db push on rollout.
+CMD ["sh", "-c", "nginx && pnpm run --parallel pm2 && pm2 logs"]
